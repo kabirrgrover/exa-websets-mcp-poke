@@ -22,12 +22,13 @@ console.log(`[Gateway] Started Exa MCP on port ${EXA_PORT}`);
 
 // --- Start Websets MCP Server (New) ---
 // Runs on PORT 3002 via mcp-proxy
-// Command: npx mcp-proxy --port 3002 --sseEndpoint /sse --streamEndpoint /mcp -- node node_modules/exa-websets-mcp-server/build/index.js
+// Command: npx mcp-proxy --port 3002 --sseEndpoint /websets/sse --streamEndpoint /websets/mcp -- node node_modules/exa-websets-mcp-server/build/index.js
+// We use full paths so that the SSE endpoint announcement matches the external URL structure.
 const websetsMcp = spawn('npx', [
     'mcp-proxy',
     '--port', WEBSETS_PORT,
-    '--sseEndpoint', '/sse',
-    '--streamEndpoint', '/mcp',
+    '--sseEndpoint', '/websets/sse',
+    '--streamEndpoint', '/websets/mcp',
     '--',
     'node',
     path.join(__dirname, 'node_modules', 'exa-websets-mcp-server', 'build', 'index.js')
@@ -49,15 +50,11 @@ app.use('/mcp', createProxyMiddleware({
 
 // 2. Websets MCP Routes
 // We mount everything under /websets/
-// Clients should connect to /websets/sse
-// And POST to /websets/mcp
+// Proxy forwards the full path (e.g. /websets/sse) to mcp-proxy, which is now looking for that exact path.
 app.use('/websets', createProxyMiddleware({
     target: `http://localhost:${WEBSETS_PORT}`,
     changeOrigin: true,
-    ws: true,
-    pathRewrite: {
-        '^/websets': '', // Strip /websets prefix when sending to internal server
-    },
+    ws: true
 }));
 
 // Health check
