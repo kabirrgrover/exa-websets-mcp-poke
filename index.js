@@ -22,20 +22,28 @@ console.log(`[Gateway] Started Exa MCP on port ${EXA_PORT}`);
 
 // --- Start Websets MCP Server (New) ---
 // Runs on PORT 3002 via mcp-proxy
-// Command: npx mcp-proxy --port 3002 --sseEndpoint /websets/sse --streamEndpoint /websets/mcp -- node node_modules/exa-websets-mcp-server/build/index.js
-// We use full paths so that the SSE endpoint announcement matches the external URL structure.
-const websetsMcp = spawn('npx', [
-    'mcp-proxy',
+const mcpProxyBin = path.join(__dirname, 'node_modules', '.bin', 'mcp-proxy');
+const websetsScript = path.join(__dirname, 'node_modules', 'exa-websets-mcp-server', 'build', 'index.js');
+
+const websetsMcp = spawn(mcpProxyBin, [
     '--port', WEBSETS_PORT,
     '--sseEndpoint', '/websets/sse',
     '--streamEndpoint', '/websets/mcp',
     '--',
     'node',
-    path.join(__dirname, 'node_modules', 'exa-websets-mcp-server', 'build', 'index.js')
+    websetsScript
 ], {
     env: { ...process.env },
-    stdio: 'inherit'
+    stdio: 'pipe' // Capture stdio for logging
 });
+
+websetsMcp.stdout.on('data', (data) => {
+    console.log(`[Websets:3002] ${data.toString().trim()}`);
+});
+websetsMcp.stderr.on('data', (data) => {
+    console.error(`[Websets:3002] ${data.toString().trim()}`);
+});
+
 console.log(`[Gateway] Started Websets MCP on port ${WEBSETS_PORT}`);
 
 // --- Proxy Routes ---
